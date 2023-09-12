@@ -1,1 +1,7 @@
-# simple-api-rus-rocket
+# simple-api-rust
+
+# Framework
+* Rocket
+
+# Run
+* make run
