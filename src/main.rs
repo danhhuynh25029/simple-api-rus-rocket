@@ -1,7 +1,12 @@
+mod model;
+mod repository;
+
 use std::vec;
-use rocket::{get, http::Status, serde::json::Json};
+use model::base::Task;
+use mongodb::results::InsertOneResult;
+use repository::mgo::MongoRepo;
+use rocket::{get, http::Status, serde::json::Json, State};
 use serde::Serialize;
-use my_crate::Task;
 #[macro_use]
 extern crate rocket;
 
@@ -45,8 +50,23 @@ pub async fn task() -> Result<Json<ListResponse>,Status>{
     } ;
     Ok(Json(response))
 }
+#[post("/",data = "<new_task>")]
+pub fn create_task(db : &State<MongoRepo>, new_task : Json<Task>) ->Result<Json<InsertOneResult>, Status> {
+    let data = Task{
+        id : new_task.id,
+        title : new_task.title.to_owned(),
+        content : new_task.content.to_owned(),
+    };
 
+    let task_detail = db.crate_task(data);
+    
+    match task_detail {
+        Ok(task) => Ok(Json(task)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/api", routes![health_checker_handler,task])
+    let db = MongoRepo::init();
+    rocket::build().manage(db).mount("/api", routes![health_checker_handler,task,create_task])
 }
